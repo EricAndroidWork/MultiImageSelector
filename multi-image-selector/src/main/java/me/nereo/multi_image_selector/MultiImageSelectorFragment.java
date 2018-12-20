@@ -2,6 +2,7 @@ package me.nereo.multi_image_selector;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
@@ -303,12 +305,12 @@ public class MultiImageSelectorFragment extends Fragment {
      * Open camera
      */
     private void showCameraAction() {
-        if(ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED){
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
             requestPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE,
                     getString(R.string.mis_permission_rationale_write_storage),
                     REQUEST_STORAGE_WRITE_ACCESS_PERMISSION);
-        }else {
+        } else {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
                 try {
@@ -317,8 +319,17 @@ public class MultiImageSelectorFragment extends Fragment {
                     e.printStackTrace();
                 }
                 if (mTmpFile != null && mTmpFile.exists()) {
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mTmpFile));
-                    startActivityForResult(intent, REQUEST_CAMERA);
+                    /*获取当前系统的android版本号*/
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N){
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mTmpFile));
+                        startActivityForResult(intent, REQUEST_CAMERA);
+                    }else {
+                        ContentValues contentValues = new ContentValues(1);
+                        contentValues.put(MediaStore.Images.Media.DATA, mTmpFile.getAbsolutePath());
+                        Uri uri = getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,contentValues);
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                        startActivityForResult(intent, REQUEST_CAMERA);
+                    }
                 } else {
                     Toast.makeText(getActivity(), R.string.mis_error_image_not_exist, Toast.LENGTH_SHORT).show();
                 }
@@ -327,6 +338,35 @@ public class MultiImageSelectorFragment extends Fragment {
             }
         }
     }
+
+//    /**
+//     * Open camera
+//     */
+//    private void showCameraAction() {
+//        if(ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//                != PackageManager.PERMISSION_GRANTED){
+//            requestPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                    getString(R.string.mis_permission_rationale_write_storage),
+//                    REQUEST_STORAGE_WRITE_ACCESS_PERMISSION);
+//        }else {
+//            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+//            if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+//                try {
+//                    mTmpFile = FileUtils.createTmpFile(getActivity());
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                if (mTmpFile != null && mTmpFile.exists()) {
+//                    intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(mTmpFile));
+//                    startActivityForResult(intent, REQUEST_CAMERA);
+//                } else {
+//                    Toast.makeText(getActivity(), R.string.mis_error_image_not_exist, Toast.LENGTH_SHORT).show();
+//                }
+//            } else {
+//                Toast.makeText(getActivity(), R.string.mis_msg_no_camera, Toast.LENGTH_SHORT).show();
+//            }
+//        }
+//    }
 
     private void requestPermission(final String permission, String rationale, final int requestCode){
         if(shouldShowRequestPermissionRationale(permission)){
