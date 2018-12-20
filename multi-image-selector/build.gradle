@@ -15,6 +15,35 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    //拷贝代码
+    task copyClass(type: Copy) {
+        delete('build/libs/')
+        from('build/intermediates/classes/debug')
+        into('build/libs/class/')
+    }
+
+//拷贝并解压缩libs资源
+    task copyUnzipLibClass() {
+//        ant.unzip(src: "libs/jar_1.jar", dest: "build/libs/class/")
+    }
+
+//编译 Jar
+    task buildJar(type: Jar) {
+        //最终的 Jar包名
+        archiveName = "imageSelector.jar"
+        //初始化资源路径集
+        from("build/libs/class/")
+        //去除路径集下部分的资源
+        exclude "**/R.class"
+        //集成下面的资源
+        include "/android/**"
+        include "/androidx/**"
+        include "/me/**"
+    }
+
+    copyClass.dependsOn(build)
+    copyUnzipLibClass.dependsOn(copyClass)
+    buildJar.dependsOn(copyUnzipLibClass)
 
     resourcePrefix "mis_"
 }
